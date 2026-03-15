@@ -1,0 +1,33 @@
+{
+  "name": "polymarket-collector",
+  "version": "2.0.0",
+  "description": "Polymarket orderbook data collector with separate market sync and orderbook workers",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "db:init": "node scripts/db-init.js",
+    "db:clear": "node scripts/db-clear.js",
+    "worker:market-sync": "node src/workers/market-sync.js",
+    "worker:orderbook": "node src/workers/orderbook-collector.js",
+    "start:all": "npm run worker:market-sync & npm run worker:orderbook",
+    "dev:market-sync": "DEBUG=true node src/workers/market-sync.js",
+    "dev:orderbook": "DEBUG=true node src/workers/orderbook-collector.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "pm2": "^6.0.14",
+    "ws": "^8.14.2"
+  },
+  "keywords": [
+    "polymarket",
+    "orderbook",
+    "prediction-markets",
+    "clob",
+    "websocket"
+  ],
+  "author": "",
+  "license": "MIT"
+}
