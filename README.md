@@ -61,7 +61,7 @@ A robust, production-ready system for collecting and storing Polymarket orderboo
 
 ```bash
 # Clone the repository (or copy files)
-cd polymarket-collector
+cd polymarket-data
 
 # Install dependencies
 npm install
@@ -87,34 +87,17 @@ DB_USER=postgres
 DB_PASSWORD=your_password_here
 ```
 
-### 3. Initialize Database
+### 3. Run
 
-```bash
-# Create tables and indexes
-npm run db:init
-```
 
-### 4. Start Workers
+| Script | Description |
+|--------|-------------|
+| `node scripts/db-init.js` | Initialize database schema |
+| `node scripts/db-clear.js` | Clear all data (with confirmation) |
+| `node src/workers/market-sync.js` | Start market sync worker |
+| `node src/workers/orderbook-collector.js` | Start orderbook collector worker |
 
-**Option A: Run both workers (recommended for production)**
 
-```bash
-# Terminal 1: Start the market sync worker
-npm run worker:market-sync
-
-# Terminal 2: Start the orderbook collector worker  
-npm run worker:orderbook
-```
-
-**Option B: Run with a process manager (PM2)**
-
-```bash
-# Install PM2 globally
-npm install -g pm2
-
-# Start both workers
-pm2 start ecosystem.config.cjs
-```
 
 ## Workers
 
@@ -252,139 +235,9 @@ polymarket-collector/
         └── orderbook-collector.js  # Worker 2: Orderbook collection
 ```
 
-## NPM Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run db:init` | Initialize database schema |
-| `npm run db:clear` | Clear all data (with confirmation) |
-| `npm run worker:market-sync` | Start market sync worker |
-| `npm run worker:orderbook` | Start orderbook collector worker |
-| `npm run dev:market-sync` | Start market sync with debug logging |
-| `npm run dev:orderbook` | Start orderbook collector with debug logging |
 
-## Production Deployment
 
-### Using PM2
-
-Create `ecosystem.config.cjs`:
-
-```javascript
-module.exports = {
-  apps: [
-    {
-      name: 'market-sync',
-      script: 'src/workers/market-sync.js',
-      instances: 1,
-      autorestart: true,
-      max_memory_restart: '500M',
-      env: {
-        NODE_ENV: 'production',
-      },
-    },
-    {
-      name: 'orderbook-collector',
-      script: 'src/workers/orderbook-collector.js',
-      instances: 1,
-      autorestart: true,
-      max_memory_restart: '1G',
-      env: {
-        NODE_ENV: 'production',
-      },
-    },
-  ],
-};
-```
-
-Start with PM2:
-
-```bash
-pm2 start ecosystem.config.cjs
-pm2 save
-pm2 startup  # Enable auto-start on boot
-```
-
-### Using Docker
-
-Create `Dockerfile`:
-
-```dockerfile
-FROM node:20-alpine
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-
-# Default to market-sync worker
-CMD ["node", "src/workers/market-sync.js"]
-```
-
-Create `docker-compose.yml`:
-
-```yaml
-version: '3.8'
-services:
-  market-sync:
-    build: .
-    command: node src/workers/market-sync.js
-    env_file: .env
-    restart: unless-stopped
-    depends_on:
-      - postgres
-
-  orderbook-collector:
-    build: .
-    command: node src/workers/orderbook-collector.js
-    env_file: .env
-    restart: unless-stopped
-    depends_on:
-      - market-sync
-
-  postgres:
-    image: timescale/timescaledb:latest-pg15
-    environment:
-      POSTGRES_DB: polymarket
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: your_password
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-volumes:
-  pgdata:
-```
-
-### Using systemd
-
-Create `/etc/systemd/system/polymarket-market-sync.service`:
-
-```ini
-[Unit]
-Description=Polymarket Market Sync Worker
-After=network.target postgresql.service
-
-[Service]
-Type=simple
-User=polymarket
-WorkingDirectory=/opt/polymarket-collector
-ExecStart=/usr/bin/node src/workers/market-sync.js
-Restart=always
-RestartSec=10
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Create similar file for orderbook-collector.
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable polymarket-market-sync polymarket-orderbook
-sudo systemctl start polymarket-market-sync polymarket-orderbook
-```
 
 ## Monitoring
 
@@ -401,7 +254,7 @@ Both workers display real-time dashboards with:
 Enable debug logging:
 
 ```bash
-DEBUG=true npm run worker:market-sync
+DEBUG=true npm run src/worker/market-sync.js
 ```
 
 ### Database Queries
