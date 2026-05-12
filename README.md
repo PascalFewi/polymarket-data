@@ -42,7 +42,7 @@ A robust, production-ready system for collecting and storing Polymarket orderboo
 
 - **Two Independent Workers**: Market sync and orderbook collection run separately
 - **Database-Based Communication**: Workers share data via PostgreSQL (no file dependencies)
-- **Robust WebSocket Management**: Auto-reconnection with exponential backoff
+- **Robust WebSocket**: Auto-reconnection with exponential backoff
 - **Connection Pooling**: Multiple WebSocket connections for scaling (500 assets per connection)
 - **Batched Database Operations**: Prevents memory exhaustion with large datasets
 - **TimescaleDB Support**: Optimized time-series storage with compression
@@ -206,11 +206,6 @@ WHERE m.active = true
   AND o.token_id IS NOT NULL
 ```
 
-This approach:
-- **No file system dependency** - works across machines, containers, etc.
-- **Single source of truth** - database is already there
-- **Simpler deployment** - no shared volumes needed
-- **Atomic updates** - database transactions ensure consistency
 
 ## Project Structure
 
@@ -289,38 +284,5 @@ ORDER BY m.volume_24h DESC
 LIMIT 20;
 ```
 
-## Troubleshooting
 
-### "No token data available from database" error
-
-The orderbook worker requires the market sync worker to populate the database first. Make sure:
-1. Market sync worker has run at least once
-2. Both workers are connecting to the same database
-3. Database credentials are correct in `.env`
-
-### WebSocket disconnections
-
-The system handles reconnections automatically with exponential backoff. If you see frequent disconnections:
-1. Check your network connection
-2. Verify you're not exceeding rate limits
-3. Check Polymarket API status
-
-### Database connection errors
-
-1. Verify database credentials in `.env`
-2. Check PostgreSQL is running
-3. Ensure SSL settings match your database configuration
-4. Check connection pool isn't exhausted
-
-### High memory usage
-
-1. Reduce `DB_POOL_SIZE`
-2. Enable TimescaleDB compression
-3. Consider archiving old orderbook data
-
-### Process killed during sync
-
-If the market-sync worker gets killed during initial sync (with 26,000+ markets), the batched database operations should prevent this. If it still occurs:
-1. Check available system memory
-2. Reduce batch size in `src/lib/db-operations.js` (default: 100)
 
